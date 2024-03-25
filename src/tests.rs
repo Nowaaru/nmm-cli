@@ -1,27 +1,23 @@
-use serde::{Deserialize, Serialize};
-
-#[cfg(test)]
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(transparent)]
-struct TestResponse {
-    data: std::vec::Vec<TestResponseItem>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct TestResponseItem {
-    name: String,
-    short_name: String,
-    URI: String,
-}
-
 mod tests {
-    
+    use serde::{Deserialize, Serialize};
+    #[cfg(test)]
+    #[derive(Serialize, Deserialize, Debug)]
+    #[serde(transparent)]
+    struct TestResponse {
+        data: std::vec::Vec<TestResponseItem>,
+    }
 
-    
-    
+    #[derive(Serialize, Deserialize, Debug)]
+    struct TestResponseItem {
+        name: String,
+        short_name: String,
+        URI: String,
+    }
 
     #[test]
     fn test_nexus() {
+        use crate::provider::ModProvider;
+
         let file_id = 7364;
         let mod_id = 112;
         let game_domain_name = "monsterhunterworld";
@@ -31,8 +27,8 @@ mod tests {
         assert!(apikey != "");
 
         let provider =
-            nexus::NexusProvider::new(std::env::var("NEXUS_API_KEY").unwrap_or_default());
-        let t = HashMap::<String, String>::new();
+            crate::nexus::NexusProvider::new(std::env::var("NEXUS_API_KEY").unwrap_or_default());
+        let t = std::collections::HashMap::<String, String>::new();
 
         let provider_request = provider.fetch::<TestResponse>(
             format!(

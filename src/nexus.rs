@@ -87,7 +87,6 @@ impl ModProvider for NexusProvider {
         T: DeserializeOwned,
     {
         let out_url = format!("https://{}{}", &self.api_base_url, endpoint);
-        println!("{}", out_url);
         let http_item = self
             .client
             .request(Method::GET, out_url)
