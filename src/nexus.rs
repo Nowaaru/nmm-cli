@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use reqwest::Method;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 
 use crate::provider::ModProvider;
 
@@ -44,9 +42,9 @@ pub struct NexusProvider {
 impl<T, U> NexusEndpoints<T, U> for NexusProvider {
     fn make_download_link(
         &self,
-        game_domain_name: String,
-        id: T,
-        mod_id: U,
+        _game_domain_name: String,
+        _id: T,
+        _mod_id: U,
     ) -> std::vec::Vec<NexusServer>
     where
         T: Into<i32>,

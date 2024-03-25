@@ -1,4 +1,4 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned};
 pub trait ModProvider {
     fn fetch<T>(
         &self,
