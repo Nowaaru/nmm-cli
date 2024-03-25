@@ -51,6 +51,10 @@ enum Commands {
         provider: Provider,
     },
 
+    Limits {
+        provider: Option<String>,
+    },
+
     Checkout {
         provider: Option<String>,
     },
@@ -65,6 +69,11 @@ enum Commands {
 async fn main() {
     let args = Cli::parse();
     match args.command {
+        Commands::Init { r#where } => match r#where {
+            Some(here) => (),
+            None => (),
+        },
+
         Commands::Fetch { provider } => match provider {
             Provider::Nexus {
                 domain,
@@ -74,8 +83,11 @@ async fn main() {
                 key,
             } => {}
         },
-        Commands::Init { r#where } => match r#where {
-            Some(here) => (),
+
+        // allows the user to check their api power
+        // in case they're on the verge of ratelimiting
+        Commands::Limits { provider } => match provider {
+            Some(provider) => (),
             None => (),
         },
 
