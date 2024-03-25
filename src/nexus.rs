@@ -79,11 +79,6 @@ impl NexusProvider {
     }
 }
 
-#[derive(Deserialize)]
-struct Ip {
-    origin: String,
-}
-
 impl ModProvider for NexusProvider {
     fn fetch<T>(
         &self,
