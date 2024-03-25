@@ -1,5 +1,6 @@
 mod tests {
     use serde::{Deserialize, Serialize};
+
     #[cfg(test)]
     #[derive(Serialize, Deserialize, Debug)]
     #[serde(transparent)]
@@ -40,7 +41,23 @@ mod tests {
 
         println!(
             "{:#?}",
-            provider_request.map_or_else(|e| panic!("{:#?}", e), |f| f)
+            provider_request.map_or_else(
+                |e| panic!("{:#?}", e),
+                |f| {
+                    let k = String::from_utf8(
+                        std::process::Command::new("nix-prefetch-url")
+                            .arg("--print-path")
+                            .arg(f.data[1].URI.clone().replace(" ", "%20"))
+                            .arg("--name")
+                            .arg("nmm-cli-result")
+                            .output()
+                            .expect("failed to add file to store")
+                            .stdout,
+                    )
+                    .expect("failed to convert vec!<utf8>to string");
+                    k.trim().split("\n").collect::<Vec<&str>>()[1].to_string()
+                }
+            )
         );
     }
 }
