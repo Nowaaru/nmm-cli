@@ -3,10 +3,11 @@ use std::path::PathBuf;
 
 mod r#mod;
 mod nexus;
-mod nix;
+mod lockfile;
 mod provider;
 mod query;
 mod tests;
+mod nix;
 
 // https://docs.rs/clap/latest/clap/_derive/index.html#arg-attributes
 // https://docs.rs/clap/latest/clap/_derive/_tutorial/chapter_0/index.html
@@ -69,8 +70,10 @@ enum Commands {
 async fn main() {
     let args = Cli::parse();
     match args.command {
+        // make lockfile in current directory
         Commands::Init { r#where } => match r#where {
-            Some(here) => (),
+            Some(here) => {
+            },
             None => (),
         },
 
