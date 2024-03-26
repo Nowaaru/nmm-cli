@@ -88,10 +88,6 @@ impl ModProvider for NexusProvider {
             .build()?;
 
         let response = self.client.execute(http_item)?;
-        match response.error_for_status() {
-            Ok(res) => res.json::<T>(),
-
-            Err(a) => Err(a),
-        }
+        response.error_for_status().map(|res| res.json::<T>())? // what
     }
 }
