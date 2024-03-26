@@ -1,5 +1,4 @@
 mod tests {
-    use crate::nix;
     use serde::{Deserialize, Serialize};
 
     #[cfg(test)]
@@ -18,6 +17,7 @@ mod tests {
 
     #[test]
     fn test_nexus() {
+        use crate::nix;
         use crate::provider::ModProvider;
 
         let file_id = 7364;
