@@ -47,4 +47,9 @@ mod tests {
             )
         );
     }
+
+    fn test_lockfile()
+    {
+        use crate::lockfile;
+    }
 }
