@@ -1,4 +1,4 @@
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 pub trait ModProvider {
     fn fetch<T>(
         &self,
@@ -7,4 +7,11 @@ pub trait ModProvider {
     ) -> Result<T, reqwest::Error>
     where
         T: DeserializeOwned;
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Limits {
+    pub limit: i32,
+    pub remaining: i32,
+    pub reset: usize,
 }

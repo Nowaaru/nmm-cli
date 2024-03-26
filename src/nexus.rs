@@ -1,13 +1,6 @@
+use crate::provider::{Limits, ModProvider};
 use reqwest::Method;
 use serde::de::DeserializeOwned;
-
-use crate::provider::ModProvider;
-
-struct Limits {
-    limit: i32,
-    remaining: i32,
-    reset: usize,
-}
 
 struct NexusLimits {
     daily: Limits,
