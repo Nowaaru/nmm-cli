@@ -15,3 +15,14 @@ pub struct Limits {
     pub remaining: i32,
     pub reset: usize,
 }
+
+impl Default for Limits {
+    fn default() -> Self {
+        Self {
+            limit: 2500,
+            remaining: 2500,
+            reset: usize::MAX,
+        }
+    }
+}
+
