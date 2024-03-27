@@ -77,7 +77,7 @@ impl Lockfile {
             .map(|what| serde_json::from_str(&what).expect("could not turn file into string"))
     }
 
-    pub fn from_pwd() -> Option<Self> {
+    pub fn from_cwd() -> Option<Self> {
         // why did i interchange these? :thinking:"
         if let Ok(cwd) = std::env::current_dir() {
             let new_lock = cwd.join("/nmm.lock");
