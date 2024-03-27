@@ -1,13 +1,16 @@
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
+mod lockfile;
 mod r#mod;
 mod nexus;
-mod lockfile;
+mod nix;
 mod provider;
 mod query;
 mod tests;
-mod nix;
 
 // https://docs.rs/clap/latest/clap/_derive/index.html#arg-attributes
 // https://docs.rs/clap/latest/clap/_derive/_tutorial/chapter_0/index.html
@@ -69,12 +72,32 @@ enum Commands {
 #[tokio::main]
 async fn main() {
     let args = Cli::parse();
+    let mut lock = lockfile::Lockfile::from_pwd();
+
     match args.command {
         // make lockfile in current directory
         Commands::Init { r#where } => match r#where {
             Some(here) => {
-            },
-            None => (),
+                println!("bruh: {:#?}", std::env::current_dir().unwrap());
+                lockfile::Lockfile::new()
+                    .write(Path::new(&here))
+                    .map(|_| {
+                        println!("wrote lockfile to path {}", &here);
+                    })
+                    .unwrap()
+            }
+
+            None => {
+                println!("huh?: {:#?}", std::env::current_dir().unwrap());
+                if let None = lock {
+                    match std::env::current_dir().ok() {
+                        Some(dir) => lockfile::Lockfile::new().write(&dir).map(|_| ()).unwrap(),
+                        None => (),
+                    }
+                } else {
+                    println!("lockfile already exists. exiting...");
+                }
+            }
         },
 
         Commands::Fetch { provider } => match provider {
@@ -84,7 +107,11 @@ async fn main() {
                 file_id,
                 expire,
                 key,
-            } => {}
+            } => {
+                todo!();
+                if let Some(lockfile) = lock {
+                }
+            }
         },
 
         // allows the user to check their api power
