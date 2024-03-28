@@ -6,6 +6,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::lockfile::{LockProvider, ModLock};
+
 mod lockfile;
 mod r#mod;
 mod nexus;
@@ -81,7 +83,7 @@ fn main() {
             Some(here) => {
                 println!("bruh: {:#?}", std::env::current_dir().unwrap());
                 lockfile::Lockfile::new()
-                    .write(Path::new(&here))
+                    .write(Some(Path::new(&here)))
                     .map(|_| {
                         println!("wrote lockfile to path {}", &here);
                     })
@@ -92,7 +94,7 @@ fn main() {
                 println!("huh?: {:#?}", std::env::current_dir().unwrap());
                 if let None = lock {
                     match std::env::current_dir().ok() {
-                        Some(dir) => lockfile::Lockfile::new().write(&dir).map(|_| ()).unwrap(),
+                        Some(dir) => lockfile::Lockfile::new().write(None).map(|_| ()).unwrap(),
                         None => (),
                     }
                 } else {
@@ -108,28 +110,48 @@ fn main() {
                 file_id,
                 expire,
                 key,
-            } => {
-                if let Some(lockfile) = lock {
+            } => lock
+                .map(|mut lockfile| {
                     let nexus_provider = nexus::NexusProvider::new(None);
-                    match nexus_provider.make_download_links(domain, mod_id, file_id) {
-                        Ok(links) => {
+                    nexus_provider
+                        .make_download_links(domain, mod_id, file_id)
+                        .map(|links| {
                             let uri = links.get_server_or("Los Angeles", |links| {
                                 links.first().unwrap().URI.to_owned()
                             });
 
-                            if let Some(prefetch) = nix::prefetch_url(uri) {
-                                println!("Test complete! Output link: {:#?}", prefetch)
-                            } else {
-                                println!("Test failed...")
-                            }
-                        }
-                        Err(why) => panic!("Failed to fetch download links: {:#?}", why),
-                    }
-                } else {
-                    panic!("no lockfile found. canceling...");
-                }
-            }
-        },
+                            nix::prefetch_url(uri.clone())
+                                .map(|prefetch| {
+                                    let nix::Prefetched { store_path, sha } = prefetch;
+                                    let added_mod = lockfile.add_mod(
+                                        "nexus",
+                                        ModLock::new(mod_id, file_id, sha.clone(), store_path.clone()),
+                                    );
+
+                                    if let Ok(()) = added_mod {
+                                        println!(
+                                            "Test complete! Output link: {:#?}",
+                                            nix::Prefetched {
+                                                sha: sha.clone(),
+                                                store_path: store_path.clone(),
+                                            }
+                                        );
+
+                                        lockfile.write(None).map_err(|err| {
+                                            println!("wtf: {}", err);
+                                            ()
+                                        })
+                                    } else {
+                                        panic!("Test failed while adding to lockfile...");
+                                    }
+                                })
+                                .expect("Test failed while prefetching...")
+                        })
+                        .expect("Failed to fetch download links.")
+                })
+                .expect("Test failed while looking for lockfile..."),
+        }
+        .expect("An unknown error occurred."),
 
         // allows the user to check their api power
         // in case they're on the verge of ratelimiting
