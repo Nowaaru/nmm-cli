@@ -72,7 +72,7 @@ enum Commands {
 #[tokio::main]
 async fn main() {
     let args = Cli::parse();
-    let mut lock = lockfile::Lockfile::from_cwd();
+    let lock = lockfile::Lockfile::from_cwd();
 
     match args.command {
         // make lockfile in current directory
