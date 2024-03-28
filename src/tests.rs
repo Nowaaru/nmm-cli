@@ -29,7 +29,7 @@ mod tests {
         assert!(apikey != "");
 
         let provider =
-            crate::nexus::NexusProvider::new(std::env::var("NEXUS_API_KEY").unwrap_or_default());
+            crate::nexus::NexusProvider::new(std::env::var("NEXUS_API_KEY").ok());
 
         let provider_request = provider.fetch::<TestResponse>(
             format!(
@@ -48,8 +48,7 @@ mod tests {
         );
     }
 
-    fn test_lockfile()
-    {
+    fn test_lockfile() {
         use crate::lockfile;
     }
 }
