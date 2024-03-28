@@ -36,7 +36,7 @@ impl NexusDownloadEndpoints<NexusServer> {
             short_name, URI, ..
         } in servers
         {
-            if (short_name.contains(&server_name.into())) {
+            if short_name.contains(&server_name.into()) {
                 return Some(URI.to_owned());
             }
         }
