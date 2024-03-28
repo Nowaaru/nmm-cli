@@ -19,6 +19,15 @@ pub struct Prefetched {
     pub store_path: String,
 }
 
+impl Clone for Prefetched {
+    fn clone(&self) -> Self {
+        Self {
+            sha: self.sha.clone(),
+            store_path: self.store_path.clone(),
+        }
+    }
+}
+
 pub fn prefetch_url(url: String) -> Option<Prefetched> {
     let k = String::from_utf8(
         std::process::Command::new("nix-prefetch-url")
