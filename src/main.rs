@@ -1,4 +1,6 @@
 use clap::{Parser, Subcommand};
+use nexus::NexusEndpoints;
+use provider::ModProvider;
 use std::{
     env,
     path::{Path, PathBuf},
@@ -69,8 +71,7 @@ enum Commands {
     },
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let args = Cli::parse();
     let lock = lockfile::Lockfile::from_cwd();
 
@@ -108,8 +109,24 @@ async fn main() {
                 expire,
                 key,
             } => {
-                todo!();
                 if let Some(lockfile) = lock {
+                    let nexus_provider = nexus::NexusProvider::new(None);
+                    match nexus_provider.make_download_links(domain, mod_id, file_id) {
+                        Ok(links) => {
+                            let uri = links.get_server_or("Los Angeles", |links| {
+                                links.first().unwrap().URI.to_owned()
+                            });
+
+                            if let Some(prefetch) = nix::prefetch_url(uri) {
+                                println!("Test complete! Output link: {:#?}", prefetch)
+                            } else {
+                                println!("Test failed...")
+                            }
+                        }
+                        Err(why) => panic!("Failed to fetch download links: {:#?}", why),
+                    }
+                } else {
+                    panic!("no lockfile found. canceling...");
                 }
             }
         },
