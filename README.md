@@ -2,8 +2,8 @@
 
 ###### the nix-mod-manager cli
 
-- [ ] lockfile generation
-- [ ] submitting lockfile to store
+- [x] lockfile generation
+- [ ] ~~submitting lockfile to store~~
 - [ ] use `nmm get-store` every home manager generation
 - [ ] use `fetchStoreMod` with provider + game id + mod id args to retrieve store mod
 
