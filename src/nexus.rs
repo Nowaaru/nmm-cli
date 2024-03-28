@@ -1,27 +1,71 @@
 use crate::provider::{Limits, ModProvider};
 use reqwest::Method;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize, Debug)]
 struct NexusLimits {
     daily: Limits,
     hourly: Limits,
 }
 
-struct NexusServer {
-    name: String,
-    short_name: String,
-    uri: String,
+#[derive(Serialize, Deserialize, Debug)]
+#[allow(non_snake_case)]
+pub struct NexusServer {
+    pub name: String,
+    pub short_name: String,
+    pub URI: String,
 }
 
-trait NexusEndpoints<T = i32, U = T> {
-    fn make_download_link(
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(transparent)]
+pub struct NexusDownloadEndpoints<T = NexusServer> {
+    data: std::vec::Vec<T>,
+}
+
+impl<T> Into<std::vec::Vec<T>> for NexusDownloadEndpoints<T> {
+    fn into(self) -> std::vec::Vec<T> {
+        self.data
+    }
+}
+
+impl NexusDownloadEndpoints<NexusServer> {
+    pub fn get_server<S: Into<String> + Copy>(&self, server_name: S) -> Option<String> {
+        let servers = &self.data;
+
+        for NexusServer {
+            short_name, URI, ..
+        } in servers
+        {
+            if (short_name.contains(&server_name.into())) {
+                return Some(URI.to_owned());
+            }
+        }
+        None
+    }
+
+    pub fn get_server_or<S: Into<String> + Copy, F: Fn(&std::vec::Vec<NexusServer>) -> String>(
+        &self,
+        server_name: S,
+        closure: F,
+    ) -> String {
+        if let Some(url) = self.get_server(server_name) {
+            return url;
+        } else {
+            return closure(&self.data);
+        }
+    }
+}
+
+pub trait NexusEndpoints<T = i32, U = T> {
+    fn make_download_links(
         &self,
         game_domain_name: String,
-        id: T,
-        mod_id: U,
-    ) -> std::vec::Vec<NexusServer>
+        mod_id: T,
+        file_id: U,
+    ) -> Result<NexusDownloadEndpoints, ()>
     where
-        T: Into<i32>;
+        T: Into<i32> + std::fmt::Display,
+        U: Into<i32> + std::fmt::Display;
 }
 
 pub struct NexusProvider {
@@ -32,23 +76,35 @@ pub struct NexusProvider {
     limits: NexusLimits,
 }
 
-impl<T, U> NexusEndpoints<T, U> for NexusProvider {
-    fn make_download_link(
+impl<T, U> NexusEndpoints<T, U> for NexusProvider
+where
+    T: Into<i32> + std::fmt::Display,
+    U: Into<i32> + std::fmt::Display,
+{
+    fn make_download_links(
         &self,
-        _game_domain_name: String,
-        _id: T,
-        _mod_id: U,
-    ) -> std::vec::Vec<NexusServer>
-    where
-        T: Into<i32>,
-    {
+        game_domain_name: String,
+        mod_id: T,
+        file_id: U,
+    ) -> Result<NexusDownloadEndpoints, ()> {
         // self.fetch(endpoint, query_params)
-        todo!();
+        let provider_request = self.fetch::<NexusDownloadEndpoints>(
+            format!(
+                "/v1/games/{}/mods/{}/files/{}/download_link.json",
+                game_domain_name, mod_id, file_id
+            ),
+            &[].into(),
+        );
+
+        let as_vec = provider_request.map_err(|e| panic!("{:#?}", e));
+
+        println!("{:#?}", as_vec);
+        return as_vec;
     }
 }
 
 impl NexusProvider {
-    pub fn new(api_key: String) -> Self {
+    pub fn new(api_key: Option<String>) -> Self {
         Self {
             client: reqwest::blocking::Client::new(),
             limits: NexusLimits {
@@ -64,7 +120,7 @@ impl NexusProvider {
                 },
             },
 
-            api_key,
+            api_key: api_key.map_or(std::env::var("NEXUS_API_KEY").unwrap_or("".into()), |v| v),
             api_base_url: "api.nexusmods.com".into(),
         }
     }
