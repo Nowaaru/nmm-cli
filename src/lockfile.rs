@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    error::Error,
     path::{Path, PathBuf},
 };
 
@@ -80,7 +79,8 @@ impl Lockfile {
     pub fn from_cwd() -> Option<Self> {
         // why did i interchange these? :thinking:"
         if let Ok(cwd) = std::env::current_dir() {
-            let new_lock = cwd.join("/nmm.lock");
+            let new_lock = cwd.join("./nmm.lock");
+            // println!("test: {:?}", new_lock);
             match new_lock.try_exists() {
                 Ok(exists) => {
                     if exists {
