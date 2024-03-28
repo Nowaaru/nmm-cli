@@ -7,6 +7,7 @@ pub trait ModProvider {
     ) -> Result<T, reqwest::Error>
     where
         T: DeserializeOwned;
+
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,4 +26,3 @@ impl Default for Limits {
         }
     }
 }
-
