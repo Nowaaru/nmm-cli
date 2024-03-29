@@ -28,11 +28,17 @@ impl Clone for Prefetched {
     }
 }
 
-pub fn prefetch_url(url: String) -> Option<Prefetched> {
+pub fn prefetch_url(url: String, hash: Option<String>) -> Option<Prefetched> {
+    let mut command = std::process::Command::new("nix-prefetch-url");
+    command.arg(url.replace(" ", "%20"));
+
+    if let Some(hash) = hash {
+        command.arg(hash);
+    }
+
     let k = String::from_utf8(
-        std::process::Command::new("nix-prefetch-url")
+        command
             .arg("--print-path")
-            .arg(url.replace(" ", "%20"))
             .arg("--name")
             .arg("nmm-cli-result")
             .output()

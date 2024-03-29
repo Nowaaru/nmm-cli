@@ -120,7 +120,7 @@ fn main() {
                                 links.first().unwrap().URI.to_owned()
                             });
 
-                            nix::prefetch_url(uri.clone())
+                            nix::prefetch_url(uri.clone(), None)
                                 .map(|prefetch| {
                                     let nix::Prefetched { store_path, sha } = prefetch;
                                     let added_mod = lockfile.add_mod(

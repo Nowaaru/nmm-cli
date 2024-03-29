@@ -43,7 +43,7 @@ mod tests {
             "{:#?}",
             provider_request.map_or_else(
                 |e| panic!("{:#?}", e),
-                |f| nix::prefetch_url(f.data[1].URI.clone())
+                |f| nix::prefetch_url(f.data[1].URI.clone(), None)
             )
         );
     }
