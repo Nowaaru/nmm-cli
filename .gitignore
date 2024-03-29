@@ -1,5 +1,5 @@
 # Added by cargo
-/target
-!target/release/nmm-cli
+/target/*
+!/target/release/nmm-cli
 
 nmm.lock
