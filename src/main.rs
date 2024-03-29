@@ -75,23 +75,27 @@ fn main() {
     match args.command {
         // make lockfile in current directory
         Commands::Init { r#where } => match r#where {
+            // FIXME: look for better handling (because redundancy...)
             Some(here) => {
                 println!("bruh: {:#?}", std::env::current_dir().unwrap());
-                lockfile::Lockfile::new()
-                    .write(Some(Path::new(&here)))
-                    .map(|_| {
-                        println!("wrote lockfile to path {}", &here);
-                    })
-                    .unwrap()
+                if let None = lock {
+                    lockfile::Lockfile::new()
+                        .write(Some(Path::new(&here)))
+                        .map(|_| {
+                            println!("wrote lockfile to path {}", &here);
+                        })
+                        .unwrap()
+                } else {
+                    println!("lockfile already exists. exiting...");
+                }
             }
 
             None => {
-                println!("huh?: {:#?}", std::env::current_dir().unwrap());
                 if let None = lock {
-                    match std::env::current_dir().ok() {
-                        Some(dir) => lockfile::Lockfile::new().write(None).map(|_| ()).unwrap(),
-                        None => (),
-                    }
+                    lockfile::Lockfile::new()
+                        .write(std::env::current_dir().ok().as_deref())
+                        .map(|_| ())
+                        .unwrap();
                 } else {
                     println!("lockfile already exists. exiting...");
                 }
