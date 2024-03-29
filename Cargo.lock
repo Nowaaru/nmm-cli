@@ -1386,3 +1386,8 @@ dependencies = [
  "cfg-if",
  "windows-sys 0.48.0",
 ]
+
+[[patch.unused]]
+name = "openssl"
+version = "0.10.61"
+source = "git+https://github.com/DanielSidhion/rust-openssl.git?branch=propagate-openssl-dir-vendored#734d2c555f1d7ef708fda034db8fb5b545e9efb8"

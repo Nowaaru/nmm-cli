@@ -14,9 +14,13 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs {
       inherit system;
-      overlays = [inputs.rust-overlay.overlays.default];
+      overlays = [
+        inputs.rust-overlay.overlays.default
+      ];
     };
   in {
+    packages.x86_64-linux.default = pkgs.callPackage ./. {};
+
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = with pkgs; [
         rust-bin.stable.latest.default

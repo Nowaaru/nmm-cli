@@ -6,6 +6,7 @@
 - [ ] ~~submitting lockfile to store~~
 - [ ] use `nmm get-store` every home manager generation
 - [ ] use `fetchStoreMod` with provider + game id + mod id args to retrieve store mod
+- [ ] [wait for these damn devs to stop neglecting the nix community](https://github.com/sfackler/rust-openssl/pull/2122)
 
 nix-mod-manager is a currently presented with a problem that
 forces users to have to fetch the hash of a request (a de facto orobouros problem).
