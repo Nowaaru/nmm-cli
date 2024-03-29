@@ -1,7 +1,4 @@
-use std::{
-    borrow::Borrow,
-    path::{Path, PathBuf},
-};
+use std::path::PathBuf;
 
 pub fn check_store_url(path: PathBuf) -> bool {
     std::process::Command::new("nix store")
