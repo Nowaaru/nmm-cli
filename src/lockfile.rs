@@ -1,11 +1,10 @@
+use crate::provider::Limits;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    path::{self, Path, PathBuf},
+    fmt::{Debug, Display},
+    path::Path,
 };
-
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
-use crate::provider::Limits;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ModLock<S: Into<String> + Clone = String> {
@@ -43,24 +42,14 @@ impl Clone for ModLock {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ModRequest<S: Into<String> + Clone = String>(S, S);
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LockProvider<L = Limits>
 where
     L: Into<Limits>,
 {
     pub name: String,
-    /*
-       {
-        mod-id = {
-            file-id = {
-                mod_id
-                file_id
-
-                url
-                sha
-            }
-        }
-       }
-    */
     pub mods: HashMap<String, HashMap<String, ModLock>>,
     pub limits: L,
 }
@@ -81,7 +70,6 @@ where
 
         *mod_files = modlock;
 
-        println!("fuck me man: {:#?}", self.mods);
         Ok(())
     }
 
@@ -120,13 +108,15 @@ where
     // time since epoch (in milliseconds)
     // when the lockfile was updated
     revision: usize,
-    providers: HashMap<String, LockProvider<L>>,
+    pub providers: HashMap<String, LockProvider<L>>,
+    pub requests: HashMap<String, ModRequest>,
 }
 
 impl Lockfile {
     pub fn new() -> Self {
         Self {
             revision: 0,
+            requests: HashMap::default(),
             providers: HashMap::from([("nexus".into(), LockProvider::default())]),
         }
     }
@@ -142,13 +132,14 @@ impl Lockfile {
             .insert_modlock(modlock)
     }
 
-    pub fn remove_fileid<S: Into<String> + Clone>(
+    pub fn remove_file_id<S: Into<String> + Clone>(
         &mut self,
+        provider: S,
         modid: S,
         fileid: S,
     ) -> Result<(), ()> {
         self.providers
-            .get_mut("nexus")
+            .get_mut(&provider.into())
             .ok_or(())?
             .remove_modlock_by_fileid(modid, fileid)
     }
@@ -158,6 +149,10 @@ impl Lockfile {
             serde_json::from_str(&what)
                 .expect(&format!("could not turn file into string:\n{}", &what))
         })
+    }
+
+    pub fn get_provider<S: Into<String>>(&self, provider_id: S) -> Option<&LockProvider> {
+        self.providers.get(&provider_id.into())
     }
 
     pub fn from_cwd() -> Option<Self> {
@@ -184,12 +179,24 @@ impl Lockfile {
         }
     }
 
+    pub fn get_mod_id<S: Into<String> + Clone + Debug + Display>(
+        &self,
+        provider: S,
+        mod_id: S,
+        file_id: S,
+    ) -> Option<&ModLock> {
+        self
+            .get_provider(provider.clone())
+            .expect(format!("could not find provider {provider:?}").as_str())
+            .mods
+            .get(&mod_id.into())?
+            .get(&file_id.into())
+    }
+
     pub fn write(&self, to: Option<&Path>) -> Result<(), std::io::Error> {
         let current_dir = std::env::current_dir().expect("current directory was not found");
         let path = to.unwrap_or_else(|| &current_dir);
         let to_write = serde_json::to_string_pretty(self)?;
-
-        println!("{}", to_write);
 
         std::fs::write(
             if path.is_dir() {

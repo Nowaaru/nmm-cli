@@ -1,10 +1,6 @@
 use clap::{Parser, Subcommand};
 use nexus::NexusEndpoints;
-use provider::ModProvider;
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use crate::lockfile::{LockProvider, ModLock};
 
@@ -109,6 +105,14 @@ fn main() {
                 file_id,
             } => lock
                 .map(|mut lockfile| {
+                    if lockfile
+                        .get_mod_id("nexus", &mod_id.to_string(), &file_id.to_string())
+                        .is_some()
+                    {
+                        println!("Provider 'nexus' already has mod {mod_id:?}:{file_id:?}");
+                        return Ok(());
+                    }
+
                     let nexus_provider = nexus::NexusProvider::new(None);
                     nexus_provider
                         .make_download_links(domain, mod_id, file_id)
@@ -122,7 +126,12 @@ fn main() {
                                     let nix::Prefetched { store_path, sha } = prefetch;
                                     let added_mod = lockfile.add_mod(
                                         "nexus",
-                                        ModLock::new(mod_id, file_id, sha.clone(), store_path.clone()),
+                                        ModLock::new(
+                                            mod_id,
+                                            file_id,
+                                            sha.clone(),
+                                            store_path.clone(),
+                                        ),
                                     );
 
                                     if let Ok(()) = added_mod {
@@ -153,8 +162,24 @@ fn main() {
         // allows the user to check their api power
         // in case they're on the verge of ratelimiting
         Commands::Limits { provider } => match provider {
-            Some(provider) => (),
-            None => (),
+            Some(provider) => lock.map_or((), |lockfile| {
+                println!(
+                    "{:?}",
+                    lockfile
+                        .get_provider(&provider)
+                        .expect(&format!(
+                            "could not find limits for provider {}",
+                            provider.clone()
+                        ))
+                        .limits
+                )
+            }),
+
+            None => lock.map_or((), |lockfile| {
+                for (_, LockProvider { name, limits, .. }) in lockfile.providers {
+                    println!("Limits for {name:?}:\n${limits:#?}")
+                }
+            }),
         },
 
         // iterates through the lockfile and
@@ -163,8 +188,8 @@ fn main() {
         // to indicate whether nix-mod-manager should use
         // nmm-cli or just run straight-up fetchurl. :thinking: /shrug
         Commands::Checkout { provider } => match provider {
-            Some(string) => (),
-            None => (),
+            Some(_string) => todo!(),
+            None => todo!(),
         },
     };
 }
