@@ -43,11 +43,6 @@ enum Provider {
         mod_id: i32,
         #[arg(value_name = "FILE-ID")]
         file_id: i32,
-
-        #[arg(short, long)]
-        expire: Option<usize>,
-        #[arg(short, long)]
-        key: Option<String>,
     },
 }
 
@@ -108,8 +103,6 @@ fn main() {
                 domain,
                 mod_id,
                 file_id,
-                expire,
-                key,
             } => lock
                 .map(|mut lockfile| {
                     let nexus_provider = nexus::NexusProvider::new(None);
