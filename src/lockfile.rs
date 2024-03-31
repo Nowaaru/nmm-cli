@@ -158,27 +158,27 @@ impl Lockfile {
         self.providers.get(&provider_id.into())
     }
 
-    pub fn from_cwd() -> Option<Self> {
+    pub fn from(mut path: Option<std::path::PathBuf>) -> Option<Self> {
         // why did i interchange these? :thinking:"
-        if let Ok(cwd) = std::env::current_dir() {
-            let new_lock = cwd.join("./nmm.lock");
-            // println!("test: {:?}", new_lock);
-            match new_lock.try_exists() {
-                Ok(exists) => {
-                    if exists {
-                        if let Ok(lockfile) = Self::from_file(&new_lock) {
-                            Some(lockfile)
-                        } else {
-                            None
-                        }
+        let cwd = path.get_or_insert(
+            std::env::current_dir().expect("could not find current working diretory"),
+        );
+
+        let new_lock = cwd.join("./nmm.lock");
+        // println!("test: {:?}", new_lock);
+        match new_lock.try_exists() {
+            Ok(exists) => {
+                if exists {
+                    if let Ok(lockfile) = Self::from_file(&new_lock) {
+                        Some(lockfile)
                     } else {
                         None
                     }
+                } else {
+                    None
                 }
-                Err(_) => None,
             }
-        } else {
-            None
+            Err(_) => None,
         }
     }
 
@@ -188,8 +188,7 @@ impl Lockfile {
         mod_id: S,
         file_id: S,
     ) -> Option<&ModLock> {
-        self
-            .get_provider(provider.clone())
+        self.get_provider(provider.clone())
             .expect(format!("could not find provider {provider:?}").as_str())
             .mods
             .get(&mod_id.into())?

@@ -66,7 +66,7 @@ enum Commands {
 
 fn main() {
     let args = Cli::parse();
-    let lock = lockfile::Lockfile::from_cwd();
+    let mut lock = lockfile::Lockfile::from(None);
 
     match args.command {
         // make lockfile in current directory
