@@ -1,4 +1,10 @@
-use crate::provider::{Limits, ModProvider};
+use crate::{lockfile, nix};
+use std::fmt::Display;
+
+use crate::{
+    lockfile::ModLock,
+    provider::{Limits, ModProvider},
+};
 use reqwest::Method;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -56,16 +62,15 @@ impl NexusDownloadEndpoints<NexusServer> {
     }
 }
 
-pub trait NexusEndpoints<T = i32, U = T> {
-    fn make_download_links(
+pub trait NexusEndpoints<T = i32> {
+    fn make_download_links<S: Into<String> + std::fmt::Display>(
         &self,
-        game_domain_name: String,
+        game_domain_name: S,
         mod_id: T,
-        file_id: U,
+        file_id: T,
     ) -> Result<NexusDownloadEndpoints, ()>
     where
-        T: Into<i32> + std::fmt::Display,
-        U: Into<i32> + std::fmt::Display;
+        T: Into<i32> + std::fmt::Display;
 }
 
 pub struct NexusProvider {
@@ -76,22 +81,20 @@ pub struct NexusProvider {
     limits: NexusLimits,
 }
 
-impl<T, U> NexusEndpoints<T, U> for NexusProvider
+impl<T> NexusEndpoints<T> for NexusProvider
 where
     T: Into<i32> + std::fmt::Display,
-    U: Into<i32> + std::fmt::Display,
 {
-    fn make_download_links(
+    fn make_download_links<S: Into<String> + std::fmt::Display>(
         &self,
-        game_domain_name: String,
+        game_domain_name: S,
         mod_id: T,
-        file_id: U,
+        file_id: T,
     ) -> Result<NexusDownloadEndpoints, ()> {
         // self.fetch(endpoint, query_params)
         let provider_request = self.fetch::<NexusDownloadEndpoints>(
             format!(
-                "/v1/games/{}/mods/{}/files/{}/download_link.json",
-                game_domain_name, mod_id, file_id
+                "/v1/games/{game_domain_name}/mods/{mod_id}/files/{file_id}/download_link.json",
             ),
             &[].into(),
         );
@@ -145,5 +148,53 @@ impl ModProvider for NexusProvider {
 
         let response = self.client.execute(http_item)?;
         response.error_for_status().map(|res| res.json::<T>())? // what
+    }
+
+    fn download(
+        &self,
+        game_id: std::string::String,
+        mod_id: i32,
+        file_id: i32,
+        lockfile: &mut lockfile::Lockfile,
+    ) -> Result<(), ()> {
+        self.make_download_links(&game_id, mod_id, file_id)
+            .map(|links| {
+                let uri = links
+                    .get_server_or("Los Angeles", |links| links.first().unwrap().URI.to_owned());
+
+                nix::prefetch_url(uri.clone(), None)
+                    .map(|prefetch| {
+                        let nix::Prefetched { store_path, sha } = prefetch;
+                        let added_mod = lockfile.add_mod(
+                            "nexus",
+                            ModLock::new(
+                                mod_id.into(),
+                                file_id.into(),
+                                sha.clone(),
+                                game_id.into(),
+                                store_path.clone(),
+                            ),
+                        );
+
+                        if let Ok(()) = added_mod {
+                            println!(
+                                "Test complete! Output link: {:#?}",
+                                nix::Prefetched {
+                                    sha: sha.clone(),
+                                    store_path: store_path.clone(),
+                                }
+                            );
+
+                            lockfile.write(None).map_err(|err| {
+                                println!("wtf: {}", err);
+                                ()
+                            })
+                        } else {
+                            panic!("Test failed while adding to lockfile...");
+                        }
+                    })
+                    .expect("Test failed while prefetching...")
+            })
+            .expect("Failed to fetch download links.")
     }
 }

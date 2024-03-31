@@ -1,4 +1,8 @@
+use crate::lockfile;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::fmt::Display;
+
+use crate::lockfile::ModLock;
 pub trait ModProvider {
     fn fetch<T>(
         &self,
@@ -8,6 +12,13 @@ pub trait ModProvider {
     where
         T: DeserializeOwned;
 
+    fn download(
+        &self,
+        game_id: std::string::String,
+        mod_id: i32,
+        file_id: i32,
+        lockfile: &mut lockfile::Lockfile,
+    ) -> Result<(), ()>;
 }
 
 #[derive(Debug, Serialize, Deserialize)]

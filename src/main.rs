@@ -1,11 +1,12 @@
 use clap::{Parser, Subcommand};
 use nexus::NexusEndpoints;
+use provider::ModProvider;
 use std::path::{Path, PathBuf};
+use std::string::String;
 
 use crate::lockfile::{LockProvider, ModLock};
 
 mod lockfile;
-mod r#mod;
 mod nexus;
 mod nix;
 mod provider;
@@ -65,38 +66,42 @@ enum Commands {
 }
 
 fn main() {
+    // TODO: instead of using lock per match arm
+    // use the match inside of the lock map lol
+    // (please...)
+
     let args = Cli::parse();
     let mut lock = lockfile::Lockfile::from(None);
 
     match args.command {
         // make lockfile in current directory
-        Commands::Init { r#where } => match r#where {
+        Commands::Init { r#where } => {
             // FIXME: look for better handling (because redundancy...)
-            Some(here) => {
-                println!("bruh: {:#?}", std::env::current_dir().unwrap());
-                if let None = lock {
-                    lockfile::Lockfile::new()
-                        .write(Some(Path::new(&here)))
-                        .map(|_| {
-                            println!("wrote lockfile to path {}", &here);
-                        })
-                        .unwrap()
-                } else {
-                    println!("lockfile already exists. exiting...");
-                }
+
+            let mut cwd = PathBuf::from(r#where.map_or_else(
+                || {
+                    std::env::current_dir()
+                        .expect("could not read cwd")
+                        .to_string_lossy()
+                        .to_string()
+                },
+                |w| w,
+            ));
+
+            if cwd.is_file() {
+                cwd = cwd
+                    .join("/..")
+                    .canonicalize()
+                    .expect("unable to canonicalize path");
             }
 
-            None => {
-                if let None = lock {
-                    lockfile::Lockfile::new()
-                        .write(std::env::current_dir().ok().as_deref())
-                        .map(|_| ())
-                        .unwrap();
-                } else {
-                    println!("lockfile already exists. exiting...");
-                }
-            }
-        },
+            lockfile::Lockfile::new()
+                .write(Some(&cwd))
+                .map(|_| {
+                    println!("wrote lockfile to path {:?}/nmm.lock", &cwd);
+                })
+                .unwrap()
+        }
 
         Commands::Fetch { provider } => match provider {
             Provider::Nexus {
@@ -114,46 +119,7 @@ fn main() {
                     }
 
                     let nexus_provider = nexus::NexusProvider::new(None);
-                    nexus_provider
-                        .make_download_links(domain, mod_id, file_id)
-                        .map(|links| {
-                            let uri = links.get_server_or("Los Angeles", |links| {
-                                links.first().unwrap().URI.to_owned()
-                            });
-
-                            nix::prefetch_url(uri.clone(), None)
-                                .map(|prefetch| {
-                                    let nix::Prefetched { store_path, sha } = prefetch;
-                                    let added_mod = lockfile.add_mod(
-                                        "nexus",
-                                        ModLock::new(
-                                            mod_id,
-                                            file_id,
-                                            sha.clone(),
-                                            store_path.clone(),
-                                        ),
-                                    );
-
-                                    if let Ok(()) = added_mod {
-                                        println!(
-                                            "Test complete! Output link: {:#?}",
-                                            nix::Prefetched {
-                                                sha: sha.clone(),
-                                                store_path: store_path.clone(),
-                                            }
-                                        );
-
-                                        lockfile.write(None).map_err(|err| {
-                                            println!("wtf: {}", err);
-                                            ()
-                                        })
-                                    } else {
-                                        panic!("Test failed while adding to lockfile...");
-                                    }
-                                })
-                                .expect("Test failed while prefetching...")
-                        })
-                        .expect("Failed to fetch download links.")
+                    nexus_provider.download(domain, mod_id, file_id, &mut lockfile)
                 })
                 .expect("Test failed while looking for lockfile..."),
         }
@@ -187,9 +153,41 @@ fn main() {
         // lockfile members should probably have `isApi`
         // to indicate whether nix-mod-manager should use
         // nmm-cli or just run straight-up fetchurl. :thinking: /shrug
-        Commands::Checkout { provider } => match provider {
-            Some(_string) => todo!(),
-            None => todo!(),
-        },
+        Commands::Checkout { provider } => {
+            if let Some(mut lockfile) = lock {
+                match provider {
+                    Some(provider) => match provider.as_str() {
+                        "nexus" => {
+                            // i believe this amount of shadowing
+                            // is a terrible idea. Too bad!
+
+                            if let Some(provider) = lockfile.get_provider(provider) {
+                                for (mod_id, file_ids) in &provider.mods.clone() {
+                                    let nexus_provider = nexus::NexusProvider::new(None);
+                                    for (file_id, ModLock { game_id, .. }) in file_ids {
+                                        println!("Downloading {game_id:?}/{mod_id:?}:{file_id:?}");
+                                        let parse = str::parse::<i32>;
+                                        let download_result = nexus_provider.download(
+                                            game_id.clone(),
+                                            parse(&mod_id).unwrap(),
+                                            parse(&file_id).unwrap(),
+                                            &mut lockfile,
+                                        );
+
+                                        if let Ok(..) = download_result {
+                                            println!("Download completed.");
+                                        } else {
+                                            panic!("Download.. failed?")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        _ => todo!(),
+                    },
+                    None => todo!(),
+                };
+            }
+        }
     };
 }
