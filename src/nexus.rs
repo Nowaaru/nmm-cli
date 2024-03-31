@@ -101,7 +101,7 @@ where
 
         let as_vec = provider_request.map_err(|e| panic!("{:#?}", e));
 
-        println!("{:#?}", as_vec);
+        // println!("{:#?}", as_vec);
         return as_vec;
     }
 }
@@ -170,17 +170,23 @@ impl ModProvider for NexusProvider {
                         let added_mod = lockfile.add_mod(
                             "nexus",
                             ModLock::new(
-                                mod_id.into(),
-                                file_id.into(),
+                                mod_id.clone().into(),
+                                file_id.clone().into(),
                                 sha.clone(),
-                                game_id.into(),
+                                game_id.clone().into(),
                                 store_path.clone(),
                             ),
                         );
 
                         if let Ok(()) = added_mod {
+                            let game_id = game_id.clone();
+                            let mod_id = mod_id.clone();
+                            let file_id = file_id.clone();
+
+                            println!("{game_id:#?} - {mod_id:#?}:{file_id:#?}");
+
                             println!(
-                                "Test complete! Output link: {:#?}",
+                                "{:#?}",
                                 nix::Prefetched {
                                     sha: sha.clone(),
                                     store_path: store_path.clone(),
@@ -188,14 +194,14 @@ impl ModProvider for NexusProvider {
                             );
 
                             lockfile.write(None).map_err(|err| {
-                                println!("wtf: {}", err);
+                                println!("error: {}", err);
                                 ()
                             })
                         } else {
-                            panic!("Test failed while adding to lockfile...");
+                            panic!("Test failed while adding to lockfile.");
                         }
                     })
-                    .expect("Test failed while prefetching...")
+                    .expect("Test failed while prefetching.")
             })
             .expect("Failed to fetch download links.")
     }
