@@ -107,7 +107,9 @@ where
 }
 
 impl NexusProvider {
-    pub fn new(api_key: Option<String>) -> Self {
+    pub fn new(mut api_key: Option<String>) -> Self {
+        api_key.get_or_insert(std::env::var("NEXUS_API_KEY").unwrap_or("".into()));
+
         Self {
             client: reqwest::blocking::Client::new(),
             limits: NexusLimits {
@@ -123,7 +125,7 @@ impl NexusProvider {
                 },
             },
 
-            api_key: api_key.map_or(std::env::var("NEXUS_API_KEY").unwrap_or("".into()), |v| v),
+            api_key: api_key.expect("api key was not provided"),
             api_base_url: "api.nexusmods.com".into(),
         }
     }
