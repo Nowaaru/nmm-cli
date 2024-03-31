@@ -8,8 +8,9 @@ use std::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ModLock<S: Into<String> + Clone = String> {
-    mod_id: i32,
-    file_id: i32,
+    pub mod_id: i32,
+    pub file_id: i32,
+    pub game_id: S,
 
     pub sha: S,
     pub store_path: S,
@@ -19,9 +20,10 @@ impl<S> ModLock<S>
 where
     S: Into<String> + Clone,
 {
-    pub fn new(mod_id: i32, file_id: i32, sha: S, store_path: S) -> Self {
+    pub fn new(mod_id: i32, file_id: i32, sha: S, game_id: S, store_path: S) -> Self {
         Self {
             file_id,
+            game_id,
             mod_id,
             sha,
             store_path,
@@ -34,6 +36,7 @@ impl Clone for ModLock {
         return Self {
             mod_id: self.mod_id,
             file_id: self.file_id,
+            game_id: self.game_id.clone(),
 
             sha: self.sha.clone(),
             store_path: self.store_path.clone(),
